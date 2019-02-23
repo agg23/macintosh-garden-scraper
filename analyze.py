@@ -6,6 +6,7 @@ from entry import Entry, Application, Rating
 from util import save, stripMultipleSpaces
 
 VERSION_NUMBER = re.compile(r'\b\s+([0-9.][0-9.a-zA-z]*)')
+OS_NUMBER = re.compile(r'\b([0-9.]+)\b')
 
 ENTRY_KEYS = ['source', 'title', 'type']
 APPLICATION_KEYS = ['name', 'size', 'version']
@@ -20,7 +21,7 @@ def jsonDecode(dictionary):
         if rating is not None:
             entry.rating = rating
 
-        entry.compatibilityText = dictionary.get('compatabilityText')
+        entry.compatibilityText = dictionary.get('compatibilityText')
 
         downloads = dictionary.get('downloads')
         if downloads is not None:
@@ -49,6 +50,23 @@ def loadEntries(name):
     with open(name, 'r') as infile:
         return json.load(infile, object_hook=jsonDecode)
 
+def osVersionRange(osVersion):
+    if osVersion is None:
+        return None
+
+    matches = OS_NUMBER.findall(osVersion)
+
+    if len(matches) < 1:
+        return None
+    
+    firstOs = float(matches[0])
+    lastOs = float(matches[-1])
+
+    minOs = min(firstOs, lastOs)
+    maxOs = max(firstOs, lastOs)
+
+    return (minOs, maxOs)
+
 def main():
     entries = loadEntries('1988.json')
 
@@ -61,10 +79,18 @@ def main():
         match = VERSION_NUMBER.search(title)
         if match:
             versionNumber = match.group(1)
-            newTitle = stripMultipleSpaces(title[0:match.start(1)] + title[match.end(1):len(title)])
+            newTitle = stripMultipleSpaces(title[0:match.start(1)] + title[match.end(1):len(title)]).strip()
 
             newEntry.title = newTitle
             newEntry.version = versionNumber
+
+        if hasattr(entry, 'downloads'):
+            for download in entry.downloads:
+                osVersions = osVersionRange(download.version)
+
+                if osVersions is not None:
+                    download.minOs = osVersions[0]
+                    download.maxOs = osVersions[1]
 
         newEntries.append(newEntry)
 

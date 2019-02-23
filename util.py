@@ -31,6 +31,9 @@ def concatStringsWithSpace(str1, str2):
 
     return str1 + str2
 
+def stripMultipleSpaces(string):
+    return STRIP_MULT_SPACES.sub(' ', string)
+
 def firstOrNone(listObject):
     if len(listObject) > 0:
         return listObject[0]

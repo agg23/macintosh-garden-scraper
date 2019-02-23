@@ -9,7 +9,8 @@ BASE_URL = 'http://macintoshgarden.org'
 STRIP_SPACES_AROUND_TAGS = re.compile(r'\s*(<[^<>]+>)\s*')
 STRIP_MULT_SPACES = re.compile(r'\ +')
 
-SPACE_PUNCT = set(['.', ',', '!', '?', '\"'])
+SPACE_BEFORE_PUNCT = set(['('])
+SPACE_AFTER_PUNCT = set(['.', ',', '!', '?', '\"', ')'])
 
 def compact(list):
     return [x for x in list if x is not None]
@@ -24,7 +25,7 @@ def concatStringsWithSpace(str1, str2):
     lastChar = str1[-1]
     firstChar = str2[0]
 
-    if (lastChar.isalnum() or lastChar in SPACE_PUNCT) and firstChar.isalnum():
+    if (lastChar.isalnum() or lastChar in SPACE_AFTER_PUNCT) and (firstChar.isalnum() or firstChar in SPACE_BEFORE_PUNCT):
         # Space is needed
         return str1 + ' ' + str2
 

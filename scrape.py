@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup, NavigableString
 from entry import Entry, Application, Rating
 from util import compact, concatStringsWithSpace, convertNone, firstOrNone, getSoupFromPath
 
+STRINGLESS_CLASSES = set(['download'])
 NEWLINE_TAGS = set(['p', 'br'])
 TEXT_TAGS = set(['a', 'i', 'b', 'strong'])
 
@@ -139,10 +140,17 @@ def flattenAndCombineStringTags(domElement):
     foundStrings = []
     currentString = ''
 
+    if domElement.get('class') and any(className in STRINGLESS_CLASSES for className in domElement.get('class')):
+        # Skip this element
+        return []
+
     # Recursively examine current tag
     for element in domElement.children:
         if isinstance(element, NavigableString):
             currentString = concatStringsWithSpace(currentString, unicode(element))
+        elif element.get('class') and any(className in STRINGLESS_CLASSES for className in element.get('class')):
+            # Skip this element
+            break
         elif element.name in NEWLINE_TAGS:
             if currentString != '':
                 foundStrings.append(currentString)
@@ -152,9 +160,12 @@ def flattenAndCombineStringTags(domElement):
             strings = flattenAndCombineStringTags(element)
             length = len(strings)
             if length > 1:
-                print 'Unexpected number of children strings under a text tag'
-                break
-            if length == 1:
+                # Use formatting provided by lower level
+                if currentString != '':
+                    foundStrings.append(currentString)
+                    currentString = ''
+                foundStrings.extend(strings)
+            elif length == 1:
                 currentString = concatStringsWithSpace(currentString, strings[0])
         else:
             foundStrings.extend(flattenAndCombineStringTags(element))
@@ -223,4 +234,4 @@ def buildEntry(source, typeString, title, rating, metadata, downloads, manuals, 
 
     return entry
 
-print vars(parsePage('/apps/hypercard-power-techniques-and-scripts'))
+print vars(parsePage('/apps/learnps'))

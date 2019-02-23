@@ -24,7 +24,7 @@ def extractUrl(domElement):
 
 def main():
     examineUrl = '/year/1988'
-    limit = 3
+    limit = -1
 
     navUrls = {}
     pageUrls = {}
@@ -33,7 +33,7 @@ def main():
 
     newNavExamined = True
     count = 0
-    while (newNavExamined and count < limit):
+    while (newNavExamined and (limit == -1 or count < limit)):
         newNavExamined = False
         for url, examined in navUrls.iteritems():
             if not examined:
@@ -60,8 +60,7 @@ def main():
 
         count += 1
 
-    print navUrls
-    print pageUrls
+    print 'Examined ' + str(count) + ' nav pages'
 
     entries = []
 
@@ -75,11 +74,9 @@ def main():
 
         entries.append(entry)
 
-    # pages, navs = scanForUrls('/year/1988')
+    save(entries, '1988.json')
 
-    # # entries = [parsePage(path) for path in scanForUrls('/year/1988')]
-    # # entries = [parsePage('/year/1988')]
-    save(entries)
+    print 'Downloaded ' + str(len(entries)) + ' applications'
 
 if __name__ == "__main__":
     main()

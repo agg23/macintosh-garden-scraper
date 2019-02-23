@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup, NavigableString
 
-from entry import Entry, Application
+from entry import Entry, Application, Rating
 from util import compact, concatStringsWithSpace, convertNone, firstOrNone, getSoupFromPath
 
 NEWLINE_TAGS = set(['p', 'br'])
@@ -23,6 +23,8 @@ def parsePage(path):
     title = unicode(h1Title.string)
 
     # Get metadata
+    rating = parseRating(soup)
+
     metadataList = compact([parseMetadataTableRow(row) for row in soup.find(class_='descr').find_all('tr')])
     metadata = dict(metadataList)
 
@@ -32,7 +34,22 @@ def parsePage(path):
 
     descriptionAndCompatability = parseDescriptionAndCompatability(soup)
 
-    return buildEntry(path, typeString, title, metadata, downloads, manuals, descriptionAndCompatability)
+    return buildEntry(path, typeString, title, rating, metadata, downloads, manuals, descriptionAndCompatability)
+
+def parseRating(soup):
+    averageRating = soup.find(class_='average-rating')
+    totalVotes = soup.find(class_='total-votes')
+
+    if averageRating is None or totalVotes is None:
+        return None
+
+    averageSpan = averageRating.find('span')
+    average = unicode(averageSpan.string)
+
+    totalSpan = totalVotes.find('span')
+    total = unicode(totalSpan.string)
+
+    return (average, total)
 
 def parseMetadataTableRow(row):
     columns = row.find_all('td')
@@ -44,7 +61,7 @@ def parseMetadataTableRow(row):
     metadataType = unicode(columns[0].find('strong').string).lower().strip(':')
 
     if metadataType.lower() == 'rating':
-        # Skip for now
+        # Skip (special handling for rating)
         return None
 
     metadataValues = [unicode(a.string) for a in columns[1].find_all('a')]
@@ -177,7 +194,7 @@ def extractElementText(domElement):
 
     return unicode(element.string).strip()
 
-def buildEntry(source, typeString, title, metadata, downloads, manuals, descriptionAndCompatability):
+def buildEntry(source, typeString, title, rating, metadata, downloads, manuals, descriptionAndCompatability):
     category = convertNone(metadata.get('category'))
     year = firstOrNone(metadata.get('year released'))
     author = convertNone(metadata.get('author'))
@@ -191,6 +208,10 @@ def buildEntry(source, typeString, title, metadata, downloads, manuals, descript
         year = int(year, base=10)
 
     entry = Entry(source, title, typeString, category, year, author, publisher, description, architecture)
+
+    if rating is not None:
+        entryRating = Rating(float(rating[0]), int(rating[1], base=10))
+        entry.rating = entryRating
 
     entry.compatibilityText = compatibilityText
     

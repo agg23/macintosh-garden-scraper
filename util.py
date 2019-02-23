@@ -57,8 +57,8 @@ class Encoder(json.JSONEncoder):
     def default(self, obj):
         return vars(obj)
 
-def save(data):
-    with open('data.json', 'w') as outfile:
+def save(data, name='data.json'):
+    with open(name, 'w') as outfile:
         json.dump(data, outfile, cls=Encoder)
 
 def get(url):
@@ -66,10 +66,10 @@ def get(url):
     return requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0'})
 
 def getSoupFromPath(path):
-    # response = get(BASE_URL + path)
-    # text = response.text
+    response = get(BASE_URL + path)
+    text = response.text
     # writeFile(text)
-    text = getFile()
+    # text = getFile()
 
     # Replace newlines and tabs to prevent errors in string handling later
     text = text.translate({ord(c): ord(' ') for c in '\n\r\t'})

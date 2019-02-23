@@ -15,3 +15,8 @@ class Application(object):
         self.name = name
         self.size = size
         self.version = versionString
+
+class Rating(object):
+    def __init__(self, average, count):
+        self.average = average
+        self.count = count

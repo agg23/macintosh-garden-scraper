@@ -15,7 +15,9 @@ ROMAN_NUMERAL_END_OF_STRING = re.compile(ROMAN_NUMERAL, re.IGNORECASE)
 MAC_SYSTEM_NUMBER = re.compile(r'(system|mac\s?os)\s?([0-9.x]+)', re.IGNORECASE)
 OS_NUMBER = re.compile(r'\b([0-9.X]+)\b')
 
-STRIP_PARENS = re.compile(r'(\([a-z0-9./ -]*\))', re.IGNORECASE)
+STRIP_PARENS = re.compile(r'(\([a-z0-9./ -\'"]*\))', re.IGNORECASE)
+
+INVALID_PATH_CHARS_MAP = {ord(c): ord('-') for c in '/:'}
 
 EXTENSION_MAP = {'image': 'img'}
 
@@ -71,9 +73,18 @@ def osVersionRange(osVersion):
 
     if len(matches) < 1:
         return None
+
+    firstOsString = matches[0]
+    lastOsString = matches[-1]
+
+    if firstOsString.lower() == 'x':
+        firstOsString = '10'
+
+    if lastOsString.lower() == 'x':
+        lastOsString = '10'
     
-    firstOs = float(matches[0])
-    lastOs = float(matches[-1])
+    firstOs = float(firstOsString)
+    lastOs = float(lastOsString)
 
     minOs = min(firstOs, lastOs)
     maxOs = max(firstOs, lastOs)
@@ -87,17 +98,36 @@ def isYear(value):
 For now, simply returns the path of the "created" directory
 """
 def buildDirectory(entry):
-    author = firstOrNone(entry.author)
+    publisher = firstOrNone(entry.publisher)
 
-    if author is None:
-        author = firstOrNone(entry.publisher)
+    if publisher is None:
+        publisher = firstOrNone(entry.author)
 
-    if author is None:
-        author = 'Unknown'
+    if publisher is None:
+        publisher = u'Unknown'
+
+    publisher = publisher.translate(INVALID_PATH_CHARS_MAP)
+
+    if len(publisher) > 31:
+        # Attempt to strip between parens
+        publisher = STRIP_PARENS.sub('', publisher)
+        publisher = stripMultipleSpaces(publisher).strip()
+
+    if len(publisher) > 31:
+        print 'Publisher ' + publisher + ' is too long'
 
     productName = entry.title
+    productName = productName.translate(INVALID_PATH_CHARS_MAP)
 
-    return '/' + author + '/' + productName + '/'
+    if len(productName) > 31:
+        # Attempt to strip between parens
+        productName = STRIP_PARENS.sub('', productName)
+        productName = stripMultipleSpaces(productName).strip()
+
+    if len(productName) > 31:
+        print 'Product ' + productName + ' is too long'
+
+    return ('/' + publisher + '/' + productName + '/').encode('ascii', 'ignore')
 
 def suggestFileName(entry, download):
     fileName = ''
@@ -162,9 +192,9 @@ def suggestFileName(entry, download):
     if versionNumber != '':
         versionNumber = ' ' + versionNumber
 
-    strippedTitle = entry.title.replace(':', ' -')
+    strippedTitle = entry.title.replace(':', ' - ')
 
-    fileName = strippedTitle + versionNumber + '.' + extension
+    fileName = stripMultipleSpaces(strippedTitle + versionNumber + '.' + extension)
 
     if len(fileName) > 31:
         # print 'Filename ' + fileName + ' is too long. From ' + existingFullFileName
@@ -227,10 +257,15 @@ def suggestFileName(entry, download):
         else:
             print 'Failed to shrink ' + fileName
 
-    return fileName
+    return fileName.encode('ascii', 'ignore')
 
 def main():
-    entries = loadEntries('1988.json')
+    entries = []
+
+    for year in range(1984, 1990):
+        entries.extend(loadEntries('data/' + str(year) + '.json'))
+
+    # entries = loadEntries('1988.json')
 
     newEntries = []
     downloads = []
@@ -282,8 +317,8 @@ def main():
 
         newEntries.append(newEntry)
 
-    save(newEntries, '1988modified.json')
-    save(downloads, '1988downloads.json')
+    save(newEntries, '1984-1989modified.json')
+    save(downloads, '1984-1989downloads.json')
 
 if __name__ == '__main__':
     main()

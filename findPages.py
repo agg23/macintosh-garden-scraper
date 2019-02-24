@@ -22,8 +22,10 @@ def extractUrl(domElement):
 
     return element.get('href')
 
-def main():
-    examineUrl = '/year/1988'
+def downloadYear(year):
+    yearString = str(year)
+
+    examineUrl = '/year/' + yearString
     limit = -1
 
     navUrls = {}
@@ -74,9 +76,13 @@ def main():
 
         entries.append(entry)
 
-    save(entries, '1988.json')
+    save(entries, 'data/' + yearString + '.json')
 
     print 'Downloaded ' + str(len(entries)) + ' applications'
+
+def main():
+    for year in range(1984, 1990):
+        downloadYear(year)
 
 if __name__ == "__main__":
     main()

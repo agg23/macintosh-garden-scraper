@@ -34,7 +34,7 @@ def parsePage(path):
     metadataList = compact([parseMetadataTableRow(row) for row in metadataDiv.find(class_='descr').find_all('tr')])
     metadata = dict(metadataList)
 
-    downloads = [parseDownloadRow(row) for row in metadataDiv.find_all(class_='download')]
+    downloads = compact([parseDownloadRow(row) for row in metadataDiv.find_all(class_='download')])
 
     manuals = [parseManualRow(row) for row in metadataDiv.find_all(class_='manual')]
 
@@ -77,6 +77,10 @@ def parseMetadataTableRow(row):
 def parseDownloadRow(row):
     nameTag = row.find('small', recursive=False)
     name = extractElementText(nameTag)
+
+    if name is None:
+        return None
+
     size = extractString(nameTag, 'i')
     if size is not None:
         size = size.strip('()')

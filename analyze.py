@@ -5,11 +5,13 @@ import re
 from entry import Entry, Application, Rating
 from util import firstOrNone, save, stripMultipleSpaces, stripStringFromString
 
-EXTENSION_END_OF_STRING_VERSION_NUMBER = r'(\.[a-z]*)*$'
+EXTENSION_END_OF_STRING_VERSION_NUMBER = r'(\.[_a-z]*)*$'
 VERSION_NUMBER_MAIN = r'(([0-9]|\.(?=[0-9])|v(?=[0-9]))([0-9]|[._](?=[0-9]|x(?=\b|\s)))*([a-z](?=[0-9.]|\b))?)'
+ROMAN_NUMERAL = r'(\b|[_.-])(i{1,4})(\b|[_.-])'
 
 VERSION_NUMBER = re.compile(VERSION_NUMBER_MAIN, re.IGNORECASE)
 VERSION_NUMBER_END_OF_STRING = re.compile(VERSION_NUMBER_MAIN + EXTENSION_END_OF_STRING_VERSION_NUMBER, re.IGNORECASE)
+ROMAN_NUMERAL_END_OF_STRING = re.compile(ROMAN_NUMERAL, re.IGNORECASE)
 MAC_SYSTEM_NUMBER = re.compile(r'(system|mac\s?os)\s?([0-9.x]+)', re.IGNORECASE)
 OS_NUMBER = re.compile(r'\b([0-9.X]+)\b')
 
@@ -21,7 +23,7 @@ ENTRY_KEYS = ['source', 'title', 'type']
 APPLICATION_KEYS = ['name', 'size', 'version']
 RATING_KEYS = ['average', 'count']
 
-STRIPPABLE_WORDS = ['macintosh', 'the', 'of', 'in', 'an', 'a']
+STRIPPABLE_WORDS = ['macintosh', 'the', 'an', 'a', 'is', 'and', 'of', 'in', 'for']
 
 def jsonDecode(dictionary):
     if hasKeys(dictionary, ENTRY_KEYS):
@@ -116,17 +118,27 @@ def suggestFileName(entry, download):
             existingFullFileName = stripMultipleSpaces(existingFullFileName[0:versionNumberMatch.start(1)] +
                 existingFullFileName[versionNumberMatch.end(1):]).strip()
     else:
-        # Check without being at end of string
-        versionNumberMatch = VERSION_NUMBER.search(existingFullFileName)
+        # Check for Roman numerals at end of string
+        versionNumberMatch = ROMAN_NUMERAL_END_OF_STRING.search(existingFullFileName)
 
         if versionNumberMatch:
-            versionNumberString = versionNumberMatch.group(1).replace('_', '.')
+            versionNumber = versionNumberMatch.group(2)
 
-            if '.' in versionNumber:
-                versionNumber = versionNumberString
-                # Decimal must be present in version number if it's not at the end of the line
-                existingFullFileName = stripMultipleSpaces(existingFullFileName[0:versionNumberMatch.start(1)] +
-                    existingFullFileName[versionNumberMatch.end(1):]).strip()
+            existingFullFileName = stripMultipleSpaces(existingFullFileName[0:versionNumberMatch.start(2)] +
+                existingFullFileName[versionNumberMatch.end(2):]).strip()
+
+        else:
+            # Check without being at end of string
+            versionNumberMatch = VERSION_NUMBER.search(existingFullFileName)
+
+            if versionNumberMatch:
+                versionNumberString = versionNumberMatch.group(1).replace('_', '.')
+
+                if '.' in versionNumberString:
+                    versionNumber = versionNumberString
+                    # Decimal must be present in version number if it's not at the end of the line
+                    existingFullFileName = stripMultipleSpaces(existingFullFileName[0:versionNumberMatch.start(1)] +
+                        existingFullFileName[versionNumberMatch.end(1):]).strip()
 
     splitName = existingFullFileName.split('.')
 
@@ -193,10 +205,21 @@ def suggestFileName(entry, download):
 
             fileName = shrunkFileName
 
+        spacedShrunkFileName = shrunkFileName
+
         if len(fileName) > 31:
             # Strip spacing
             shrunkFileName = shrunkFileName.replace(' ', '')
             fileName = shrunkFileName
+
+        if len(fileName) > 31:
+            # Stripping spacing wasn't enough, start dropping words
+            split = spacedShrunkFileName.split(' ')
+            for i in range(1, len(split)):
+                fileName = ''.join(split[i:])
+
+                if len(fileName) <= 31:
+                    break
 
         if len(fileName) <= 31:
             # print 'Successfully shrunk ' + fileName

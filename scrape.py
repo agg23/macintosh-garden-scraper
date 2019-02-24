@@ -23,15 +23,20 @@ def parsePage(path):
         return None
     title = unicode(h1Title.string)
 
-    # Get metadata
-    rating = parseRating(soup)
+    metadataDiv = soup.find(class_='game-preview')
+    if metadataDiv is None:
+        print 'No main content present in page'
+        return None
 
-    metadataList = compact([parseMetadataTableRow(row) for row in soup.find(class_='descr').find_all('tr')])
+    # Get metadata
+    rating = parseRating(metadataDiv)
+
+    metadataList = compact([parseMetadataTableRow(row) for row in metadataDiv.find(class_='descr').find_all('tr')])
     metadata = dict(metadataList)
 
-    downloads = [parseDownloadRow(row) for row in soup.find_all(class_='download')]
+    downloads = [parseDownloadRow(row) for row in metadataDiv.find_all(class_='download')]
 
-    manuals = [parseManualRow(row) for row in soup.find_all(class_='manual')]
+    manuals = [parseManualRow(row) for row in metadataDiv.find_all(class_='manual')]
 
     descriptionAndCompatability = parseDescriptionAndCompatability(soup)
 
@@ -234,4 +239,4 @@ def buildEntry(source, typeString, title, rating, metadata, downloads, manuals, 
 
     return entry
 
-print vars(parsePage('/apps/learnps'))
+# print vars(parsePage('/apps/learnps'))

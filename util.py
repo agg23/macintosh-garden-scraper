@@ -34,11 +34,17 @@ def concatStringsWithSpace(str1, str2):
 def stripMultipleSpaces(string):
     return STRIP_MULT_SPACES.sub(' ', string)
 
-def firstOrNone(listObject):
-    if len(listObject) > 0:
-        return listObject[0]
+def stripStringFromString(stripString, strippedString, possessive=True):
+    possessiveString = r''
+    if possessive:
+        possessiveString = r'(\'s)?'
+    return re.sub(r'\b' + re.escape(stripString) + possessiveString + r'\b', '', strippedString, flags=re.IGNORECASE)
 
-    return None
+def firstOrNone(listObject):
+    if listObject is None or len(listObject) < 1:
+        return None
+
+    return listObject[0]
 
 def convertNone(o):
     if len(o) > 0:

@@ -15,11 +15,13 @@ OS_NUMBER = re.compile(r'\b([0-9.X]+)\b')
 
 STRIP_PARENS = re.compile(r'(\([a-z0-9./ -]*\))', re.IGNORECASE)
 
+EXTENSION_MAP = {'image': 'img'}
+
 ENTRY_KEYS = ['source', 'title', 'type']
 APPLICATION_KEYS = ['name', 'size', 'version']
 RATING_KEYS = ['average', 'count']
 
-STRIPPABLE_WORDS = ['the', 'of', 'in', 'an', 'a']
+STRIPPABLE_WORDS = ['macintosh', 'the', 'of', 'in', 'an', 'a']
 
 def jsonDecode(dictionary):
     if hasKeys(dictionary, ENTRY_KEYS):
@@ -132,8 +134,18 @@ def suggestFileName(entry, download):
         print 'No file extension'
         return None
 
+    extensions = []
+    # Process extension
+    for extension in splitName[1:]:
+        newExtension = extension.replace('_', '').lower()
+
+        if newExtension in EXTENSION_MAP:
+            newExtension = EXTENSION_MAP[newExtension]
+
+        extensions.append(newExtension)
+
     # Wipe underscores from extension
-    extension = '.'.join(splitName[1:]).replace('_', '').lower()
+    extension = '.'.join(extensions)
 
     if versionNumber != '':
         versionNumber = ' ' + versionNumber

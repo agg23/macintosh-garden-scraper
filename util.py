@@ -12,6 +12,14 @@ STRIP_MULT_SPACES = re.compile(r'\ +')
 SPACE_BEFORE_PUNCT = set(['('])
 SPACE_AFTER_PUNCT = set(['.', ',', '!', '?', '\"', ')'])
 
+def hasKeys(dictionary, keys):
+    for key in keys:
+        if key not in dictionary:
+            return False
+
+    return True
+
+
 def compact(list):
     return [x for x in list if x is not None]
 
@@ -40,6 +48,9 @@ def stripStringFromString(stripString, strippedString, possessive=True):
         possessiveString = r'(\'s)?'
     return re.sub(r'\b' + re.escape(stripString) + possessiveString + r'\b', '', strippedString, flags=re.IGNORECASE)
 
+def stringRemoveCenter(string, start, end):
+    return string[0:start] + string[end:]
+
 def firstOrNone(listObject):
     if listObject is None or len(listObject) < 1:
         return None
@@ -64,7 +75,7 @@ def getFile():
     return unicode(text)
 
 class Encoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj):  # pylint: disable=E0202
         return vars(obj)
 
 def save(data, name='data.json'):
@@ -88,3 +99,6 @@ def getSoupFromPath(path):
     text = STRIP_SPACES_AROUND_TAGS.sub('\g<1>', text)
 
     return BeautifulSoup(text, 'html5lib')
+
+def isYear(value):
+    return value.isdigit() and len(value) == 4

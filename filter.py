@@ -9,6 +9,7 @@ ROMAN_NUMERAL = r'(\b|[_.-])(i{1,4})(\b|[_.-])'
 VERSION_NUMBER = re.compile(VERSION_NUMBER_MAIN, re.IGNORECASE)
 VERSION_NUMBER_END_OF_STRING = re.compile(VERSION_NUMBER_MAIN + EXTENSION_END_OF_STRING_VERSION_NUMBER, re.IGNORECASE)
 ROMAN_NUMERAL_END_OF_STRING = re.compile(ROMAN_NUMERAL, re.IGNORECASE)
+ARCHITECTURE = re.compile(r'(ppc|(?<![0-9])68k?)')
 
 STRIP_PARENS = re.compile(r'(\([a-z0-9./ -\'"]*\))', re.IGNORECASE)
 
@@ -128,3 +129,15 @@ def extractVersionNumber(string, includeRomanNumeral=False):
                     return (versionNumber, newString)
 
     return (None, string)
+
+def extractArchitecture(string):
+    architectureMatch = ARCHITECTURE.search(string)
+
+    if architectureMatch:
+        architectureString = architectureMatch.group(1)
+        if architectureString == '68':
+            architectureString = '68k'
+
+        return architectureString
+
+    return None

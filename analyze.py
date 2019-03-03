@@ -1,23 +1,19 @@
 import collections
 import copy
-import json
 import re
 
-from entry import Entry, Application, Rating, jsonDecode
-from filter import (extractVersionNumber, stripBetweenParens, stripFirstHyphen, stripFirstWords, 
+from entry import Entry, Application, Rating, jsonDecode, loadEntries
+from filter import (extractArchitecture, extractVersionNumber, stripBetweenParens, stripFirstHyphen, stripFirstWords, 
     stripSpacing, stripStringsFromStringIfNeeded, stripStrippableWords)
 from util import firstOrNone, isYear, save, stripMultipleSpaces, stripStringFromString
 
 MAC_SYSTEM_NUMBER = re.compile(r'(system|mac\s?os)\s?([0-9.x]+)', re.IGNORECASE)
 OS_NUMBER = re.compile(r'\b([0-9.X]+)\b')
+MAJOR_VERSION = re.compile(r'([0-9]+)[._-]')
 
 INVALID_PATH_CHARS_MAP = {ord(c): ord('-') for c in '/:'}
 
 EXTENSION_MAP = {'image': 'img'}
-
-def loadEntries(name):
-    with open(name, 'r') as infile:
-        return json.load(infile, object_hook=jsonDecode)
 
 def osVersionRange(osVersion):
     if osVersion is None:
@@ -84,7 +80,15 @@ def buildDirectory(entry):
     if len(productName) > 31:
         print 'Product "' + productName + '" is too long (original title "' + entry.title + '")'
 
-    return ('/' + publisher + '/' + productName + '/').encode('ascii', 'ignore')
+    majorVersion = ''
+    if hasattr(entry, 'version'):
+        majorVersionMatch = MAJOR_VERSION.search(entry.version)
+        majorVersion = entry.version + '/'
+
+        if majorVersionMatch:
+            majorVersion = majorVersionMatch.group(1) + '/'
+
+    return ('/' + publisher + '/' + productName + '/' + majorVersion).encode('ascii', 'ignore')
 
 def suggestFileName(entry, download):
     fileName = ''
@@ -123,7 +127,13 @@ def suggestFileName(entry, download):
     if versionNumber != '':
         versionNumber = ' ' + versionNumber
 
-    strippedTitle = entry.title.replace(':', ' - ')
+    newTitle = entry.title
+    fileArchitecture = extractArchitecture(download.name)
+
+    if fileArchitecture:
+        newTitle += ' ' + fileArchitecture
+
+    strippedTitle = newTitle.replace(':', ' - ')
 
     fileName = stripMultipleSpaces(strippedTitle + versionNumber + '.' + extension)
 
@@ -163,13 +173,13 @@ def main():
         entries.extend(loadEntries('data/' + str(year) + '.json'))
 
     newEntries = []
-    downloads = []
+    entryPathToDownloads = {}
 
     for entry in entries:
         newEntry = copy.copy(entry)
 
         title = entry.title
-        newTitle = title
+        # newTitle = title
 
         versionNumberMatch = extractVersionNumber(title, False)
 
@@ -180,17 +190,22 @@ def main():
         directory = buildDirectory(entry)
 
         if hasattr(entry, 'downloads'):
+            downloads = []
             for download in entry.downloads:
                 fileName = suggestFileName(newEntry, download)
-                if fileName is None:
-                    downloads.append('Invalid path' + ': ' + newTitle)
-                else:
-                    downloads.append(directory + fileName + ': ' + newTitle)
                 osVersions = osVersionRange(download.version)
 
                 if osVersions is not None:
                     download.minOs = osVersions[0]
                     download.maxOs = osVersions[1]
+                
+                downloads.append({
+                    'directory': directory,
+                    'filename': fileName,
+                    'download': download,
+                })
+
+            entryPathToDownloads[entry.source] = downloads
 
         newEntries.append(newEntry)
 
@@ -205,6 +220,7 @@ def main():
 
     orderedgroupedEntries = collections.OrderedDict(sorted(groupedEntries.iteritems()))
     save(orderedgroupedEntries, 'groupedEntries.json')
+    save(entryPathToDownloads, 'entryPathToDownloads.json')
 
     # save(newEntries, '1984-1989modified.json')
     # save(downloads, '1984-1989downloads.json')

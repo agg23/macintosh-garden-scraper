@@ -1,3 +1,4 @@
+import json
 from util import hasKeys
 
 ENTRY_KEYS = ['source', 'title', 'type']
@@ -57,3 +58,7 @@ def jsonDecode(dictionary):
         return Rating(dictionary.get('average'), dictionary.get('count'))
     
     return dictionary
+
+def loadEntries(name):
+    with open(name, 'r') as infile:
+        return json.load(infile, object_hook=jsonDecode)

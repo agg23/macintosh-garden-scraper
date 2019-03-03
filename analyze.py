@@ -1,3 +1,4 @@
+import collections
 import copy
 import json
 import re
@@ -161,8 +162,6 @@ def main():
     for year in range(1984, 1990):
         entries.extend(loadEntries('data/' + str(year) + '.json'))
 
-    # entries = loadEntries('1988.json')
-
     newEntries = []
     downloads = []
 
@@ -195,8 +194,20 @@ def main():
 
         newEntries.append(newEntry)
 
-    save(newEntries, '1984-1989modified.json')
-    save(downloads, '1984-1989downloads.json')
+    groupedEntries = {}
+
+    for entry in newEntries:
+        if entry.title in groupedEntries:
+            currentEntries = groupedEntries[entry.title]
+            currentEntries.append(entry)
+        else:
+            groupedEntries[entry.title] = [entry]
+
+    orderedgroupedEntries = collections.OrderedDict(sorted(groupedEntries.iteritems()))
+    save(orderedgroupedEntries, 'groupedEntries.json')
+
+    # save(newEntries, '1984-1989modified.json')
+    # save(downloads, '1984-1989downloads.json')
 
 if __name__ == '__main__':
     main()

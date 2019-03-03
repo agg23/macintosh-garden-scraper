@@ -12,7 +12,8 @@ ROMAN_NUMERAL_END_OF_STRING = re.compile(ROMAN_NUMERAL, re.IGNORECASE)
 
 STRIP_PARENS = re.compile(r'(\([a-z0-9./ -\'"]*\))', re.IGNORECASE)
 
-STRIPPABLE_WORDS = ['macintosh', 'the', 'an', 'a', 'is', 'and', 'of', 'in', 'for']
+STRIPPABLE_WORDS = ['macintosh', 'inc.', 'inc', 'incorporated', 'corp', 'volume', 'aka', 'the', 'an',
+    'a', 'is', '&', '%', '$', '#', '@', 'and', 'or', 'of', 'in', 'for']
 
 def cleanupString(string):
     return stripMultipleSpaces(string).strip()

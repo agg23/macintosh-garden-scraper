@@ -55,14 +55,18 @@ def buildDirectory(entry):
 
     if publisher is None:
         publisher = u'Unknown'
+        
+    originalPublisher = publisher
 
     publisher = publisher.translate(INVALID_PATH_CHARS_MAP)
 
     # Attempt to strip between parens
     publisher = stripBetweenParens(publisher)
 
+    publisher = stripStrippableWords(publisher)
+
     if len(publisher) > 31:
-        print 'Publisher ' + publisher + ' is too long'
+        print 'Publisher ' + publisher + ' is too long (original "' + originalPublisher + '")'
 
     productName = entry.title
     productName = productName.translate(INVALID_PATH_CHARS_MAP)
@@ -74,8 +78,10 @@ def buildDirectory(entry):
     productName = stripStringsFromStringIfNeeded(entry.author, productName)
     productName = stripStringsFromStringIfNeeded(entry.publisher, productName)
 
+    productName = stripStrippableWords(productName)
+
     if len(productName) > 31:
-        print 'Product ' + productName + ' is too long'
+        print 'Product "' + productName + '" is too long (original title "' + entry.title + '")'
 
     return ('/' + publisher + '/' + productName + '/').encode('ascii', 'ignore')
 

@@ -46,7 +46,7 @@ def stripStringFromString(stripString, strippedString, possessive=True):
     possessiveString = r''
     if possessive:
         possessiveString = r'(\'s)?'
-    return re.sub(r'\b' + re.escape(stripString) + possessiveString + r'\b', '', strippedString, flags=re.IGNORECASE)
+    return re.sub(r'(^|\b|\s)' + re.escape(stripString) + possessiveString + r'(\b|\s|$)', ' ', strippedString, flags=re.IGNORECASE)
 
 def stringRemoveCenter(string, start, end):
     return string[0:start] + string[end:]

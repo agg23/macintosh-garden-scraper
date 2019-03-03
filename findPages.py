@@ -81,7 +81,7 @@ def downloadYear(year):
     print 'Downloaded ' + str(len(entries)) + ' applications'
 
 def main():
-    for year in range(1984, 1990):
+    for year in range(1996, 2001):
         downloadYear(year)
 
 if __name__ == "__main__":

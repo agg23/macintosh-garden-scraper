@@ -11,13 +11,14 @@ VERSION_NUMBER_END_OF_STRING = re.compile(VERSION_NUMBER_MAIN + EXTENSION_END_OF
 ROMAN_NUMERAL_END_OF_STRING = re.compile(ROMAN_NUMERAL, re.IGNORECASE)
 ARCHITECTURE = re.compile(r'(ppc|(?<![0-9])68k?)')
 
+STRIP_PERIOD_SPACES = re.compile(r'(\s*\.\s*)')
 STRIP_PARENS = re.compile(r'(\([a-z0-9./ -\'"]*\))', re.IGNORECASE)
 
 STRIPPABLE_WORDS = ['macintosh', 'inc.', 'inc', 'incorporated', 'corp', 'volume', 'aka', 'the', 'an',
     'a', 'is', '&', '%', '$', '#', '@', 'and', 'or', 'of', 'in', 'for']
 
 def cleanupString(string):
-    return stripMultipleSpaces(string).strip()
+    return stripPeriodSpaces(stripMultipleSpaces(string)).strip()
 
 def stripBetweenParens(string):
     if len(string) > 31:
@@ -38,6 +39,9 @@ def stripFirstHyphen(string):
             return cleanupString(newString)
 
     return string
+
+def stripPeriodSpaces(string):
+    return STRIP_PERIOD_SPACES.sub('.', string)
 
 def stripStringsFromString(stringsList, string):
     if stringsList is not None:

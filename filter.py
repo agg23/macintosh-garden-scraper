@@ -4,10 +4,12 @@ from util import isYear, stringRemoveCenter, stripMultipleSpaces, stripStringFro
 
 EXTENSION_END_OF_STRING_VERSION_NUMBER = r'(\.[_a-z]*)*$'
 VERSION_NUMBER_MAIN = r'(([0-9]|\.(?=[0-9])|v(?=[0-9]))([0-9]|[._](?=[0-9]|x(?=\b|\s)))*([a-z](?=[0-9.]|\b))?)'
+VERSION_NUMBER_RANGE_SEPARATOR = r'(\s?[&_-]\s?)'
 ROMAN_NUMERAL = r'(\b|[_.-])(i{1,4})(\b|[_.-])'
 
 VERSION_NUMBER = re.compile(VERSION_NUMBER_MAIN, re.IGNORECASE)
 VERSION_NUMBER_END_OF_STRING = re.compile(VERSION_NUMBER_MAIN + EXTENSION_END_OF_STRING_VERSION_NUMBER, re.IGNORECASE)
+VERSION_NUMBER_RANGE = re.compile(VERSION_NUMBER_MAIN + VERSION_NUMBER_RANGE_SEPARATOR + VERSION_NUMBER_MAIN, re.IGNORECASE)
 ROMAN_NUMERAL_END_OF_STRING = re.compile(ROMAN_NUMERAL, re.IGNORECASE)
 ARCHITECTURE = re.compile(r'(ppc|(?<![0-9])68k?)')
 
@@ -96,6 +98,16 @@ def stripFirstWords(string, stringWithSpaces):
     return string
 
 def extractVersionNumber(string, includeRomanNumeral=False):
+    versionNumberMatch = VERSION_NUMBER_RANGE.search(string)
+
+    if versionNumberMatch:
+        versionNumberStart = versionNumberMatch.group(1)
+        versionNumberEnd = versionNumberMatch.group(6)
+
+        newString = cleanupString(stringRemoveCenter(string, versionNumberMatch.start(0), versionNumberMatch.end(0)))
+
+        return (versionNumberStart + '-' + versionNumberEnd, newString, True)
+
     versionNumberMatch = VERSION_NUMBER_END_OF_STRING.search(string)
 
     if versionNumberMatch:
@@ -106,33 +118,32 @@ def extractVersionNumber(string, includeRomanNumeral=False):
             # Strip version number from filename
             newString = cleanupString(stringRemoveCenter(string, versionNumberMatch.start(1), versionNumberMatch.end(1)))
 
-            return (versionNumber, newString)
-    else:
-        # Check for Roman numerals at end of string
-        versionNumberMatch = ROMAN_NUMERAL_END_OF_STRING.search(string)
+            return (versionNumber, newString, False)
 
-        if includeRomanNumeral and versionNumberMatch:
-            versionNumber = versionNumberMatch.group(2)
+    # Check for Roman numerals at end of string
+    versionNumberMatch = ROMAN_NUMERAL_END_OF_STRING.search(string)
 
-            newString = cleanupString(stringRemoveCenter(string, versionNumberMatch.start(2), versionNumberMatch.end(2)))
+    if includeRomanNumeral and versionNumberMatch:
+        versionNumber = versionNumberMatch.group(2)
 
-            return (versionNumber, newString)
+        newString = cleanupString(stringRemoveCenter(string, versionNumberMatch.start(2), versionNumberMatch.end(2)))
 
-        else:
-            # Check without being at end of string
-            versionNumberMatch = VERSION_NUMBER.search(string)
+        return (versionNumber, newString, False)
 
-            if versionNumberMatch:
-                versionNumberString = versionNumberMatch.group(1).replace('_', '.')
+    # Check without being at end of string
+    versionNumberMatch = VERSION_NUMBER.search(string)
 
-                if '.' in versionNumberString:
-                    # Decimal must be present in version number if it's not at the end of the line
-                    versionNumber = versionNumberString
-                    newString = cleanupString(stringRemoveCenter(string, versionNumberMatch.start(1), versionNumberMatch.end(1)))
+    if versionNumberMatch:
+        versionNumberString = versionNumberMatch.group(1).replace('_', '.')
 
-                    return (versionNumber, newString)
+        if '.' in versionNumberString:
+            # Decimal must be present in version number if it's not at the end of the line
+            versionNumber = versionNumberString
+            newString = cleanupString(stringRemoveCenter(string, versionNumberMatch.start(1), versionNumberMatch.end(1)))
 
-    return (None, string)
+            return (versionNumber, newString, False)
+
+    return (None, string, False)
 
 def extractArchitecture(string):
     architectureMatch = ARCHITECTURE.search(string)

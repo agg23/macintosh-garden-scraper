@@ -51,6 +51,14 @@ def jsonDecode(dictionary):
         if manuals is not None:
             entry.manuals = manuals
 
+        version = dictionary.get('version')
+        if version is not None:
+            entry.version = version
+
+        versionRange = dictionary.get('versionRange')
+        if versionRange is not None:
+            entry.versionRange = versionRange
+
         return entry
     elif hasKeys(dictionary, APPLICATION_KEYS):
         return Application(dictionary.get('name'), dictionary.get('size'), dictionary.get('version'))

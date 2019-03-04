@@ -81,7 +81,9 @@ def buildDirectory(entry):
         print 'Product "' + productName + '" is too long (original title "' + entry.title + '")'
 
     majorVersion = ''
-    if hasattr(entry, 'version'):
+    if hasattr(entry, 'versionRange'):
+        majorVersion = entry.version
+    elif hasattr(entry, 'version'):
         majorVersionMatch = MAJOR_VERSION.search(entry.version)
         majorVersion = entry.version + '/'
 
@@ -183,11 +185,15 @@ def main():
 
         versionNumberMatch = extractVersionNumber(title, False)
 
+        if versionNumberMatch[2]:
+            # Version range
+            newEntry.versionRange = True
+
         if versionNumberMatch[0] is not None:
             newEntry.version = versionNumberMatch[0]
             newEntry.title = versionNumberMatch[1]
 
-        directory = buildDirectory(entry)
+        directory = buildDirectory(newEntry)
 
         if hasattr(entry, 'downloads'):
             downloads = []

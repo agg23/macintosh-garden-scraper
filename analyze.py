@@ -168,6 +168,8 @@ def suggestFileName(entry, download):
         else:
             print 'Failed to shrink ' + fileName
 
+    fileName = fileName.translate(INVALID_PATH_CHARS_MAP)
+
     return fileName.encode('ascii', 'ignore')
 
 def extractDownloadRange(downloads):

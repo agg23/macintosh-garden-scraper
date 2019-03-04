@@ -45,7 +45,7 @@ def osVersionRange(osVersion):
 """
 For now, simply returns the path of the "created" directory
 """
-def buildDirectory(entry):
+def buildDirectory(entry, includeVersion):
     publisher = firstOrNone(entry.publisher)
 
     if publisher is None:
@@ -82,14 +82,15 @@ def buildDirectory(entry):
         print 'Product "' + productName + '" is too long (original title "' + entry.title + '")'
 
     majorVersion = ''
-    if hasattr(entry, 'versionRange'):
-        majorVersion = entry.version + '/'
-    elif hasattr(entry, 'version'):
-        majorVersionMatch = MAJOR_VERSION.search(entry.version)
-        majorVersion = entry.version + '/'
+    if includeVersion:
+        if hasattr(entry, 'versionRange'):
+            majorVersion = entry.version + '/'
+        elif hasattr(entry, 'version'):
+            majorVersionMatch = MAJOR_VERSION.search(entry.version)
+            majorVersion = entry.version + '/'
 
-        if majorVersionMatch:
-            majorVersion = majorVersionMatch.group(1) + '/'
+            if majorVersionMatch:
+                majorVersion = majorVersionMatch.group(1) + '/'
 
     return ('/' + publisher + '/' + productName + '/' + majorVersion).encode('ascii', 'ignore')
 
@@ -232,6 +233,7 @@ def main():
         entries.extend(loadEntries('data/' + str(year) + '.json'))
 
     newEntries = []
+    groupedEntries = {}
     entryPathToDownloads = {}
 
     for entry in entries:
@@ -249,41 +251,7 @@ def main():
             newEntry.version = versionNumberMatch[0]
             newEntry.title = versionNumberMatch[1]
 
-        hasDownloads = hasattr(entry, 'downloads')
-
-        if hasDownloads:
-            downloadRange = extractDownloadRange(entry.downloads)
-
-            if downloadRange and not hasattr(newEntry, 'versionRange'):
-                if downloadRange[0] == downloadRange[1]:
-                    newEntry.version = downloadRange[0]
-                else:
-                    newEntry.version = downloadRange[0] + '-' + downloadRange[1]
-                    newEntry.versionRange = True
-
-        directory = buildDirectory(newEntry)
-
-        if hasDownloads:
-            downloads = []
-            for download in entry.downloads:
-                fileName = suggestFileName(newEntry, download)
-                osVersions = osVersionRange(download.version)
-
-                if osVersions is not None:
-                    download.minOs = osVersions[0]
-                    download.maxOs = osVersions[1]
-                
-                downloads.append({
-                    'directory': directory,
-                    'filename': fileName,
-                    'download': download,
-                })
-
-            entryPathToDownloads[entry.source] = downloads
-
         newEntries.append(newEntry)
-
-    groupedEntries = {}
 
     for entry in newEntries:
         if entry.title in groupedEntries:
@@ -292,9 +260,46 @@ def main():
         else:
             groupedEntries[entry.title] = [entry]
 
-    orderedgroupedEntries = collections.OrderedDict(sorted(groupedEntries.iteritems()))
-    save(orderedgroupedEntries, 'groupedEntries.json')
-    save(entryPathToDownloads, 'entryPathToDownloads.json')
+    for title in groupedEntries:
+        entries = groupedEntries[title]
+        multiversion = len(entries) > 1
+        for entry in entries: 
+            hasDownloads = hasattr(entry, 'downloads')
+
+            if hasDownloads:
+                downloadRange = extractDownloadRange(entry.downloads)
+
+                if downloadRange and not hasattr(entry, 'versionRange'):
+                    if downloadRange[0] == downloadRange[1]:
+                        entry.version = downloadRange[0]
+                    else:
+                        entry.version = downloadRange[0] + '-' + downloadRange[1]
+                        entry.versionRange = True
+
+            directory = buildDirectory(entry, multiversion)
+
+            if hasDownloads:
+                downloads = []
+                for download in entry.downloads:
+                    fileName = suggestFileName(entry, download)
+                    osVersions = osVersionRange(download.version)
+
+                    if osVersions is not None:
+                        download.minOs = osVersions[0]
+                        download.maxOs = osVersions[1]
+                    
+                    downloads.append({
+                        'directory': directory,
+                        'filename': fileName,
+                        'download': download,
+                    })
+
+                entryPathToDownloads[entry.source] = downloads
+
+    orderedGroupedEntries = collections.OrderedDict(sorted(groupedEntries.iteritems()))
+    orderedEntryPathToDownloads = collections.OrderedDict(sorted(entryPathToDownloads.iteritems()))
+    save(orderedGroupedEntries, 'groupedEntries.json')
+    save(orderedEntryPathToDownloads, 'entryPathToDownloads.json')
 
 if __name__ == '__main__':
     main()

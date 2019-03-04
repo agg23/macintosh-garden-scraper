@@ -201,7 +201,7 @@ def extractDownloadRange(downloads):
                         continue
 
                     if not useUnderscores and versionNumber < lastVersionNumber:
-                        print 'Decreasing version numbers in file name. Attempting underscore'
+                        # Decreasing version numbers in file name. Attempting underscore
                         useUnderscores = True
                         completed = False
 
@@ -280,13 +280,20 @@ def main():
 
             if hasDownloads:
                 downloads = []
+                existingFileNames = set()
                 for download in entry.downloads:
                     fileName = suggestFileName(entry, download)
+
+                    if fileName in existingFileNames:
+                        print 'Filename already exists ' + fileName
+
                     osVersions = osVersionRange(download.version)
 
                     if osVersions is not None:
                         download.minOs = osVersions[0]
                         download.maxOs = osVersions[1]
+
+                    existingFileNames.add(fileName)
                     
                     downloads.append({
                         'directory': directory,

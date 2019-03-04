@@ -1,9 +1,10 @@
 import collections
 import copy
 import re
+import sys
 
 from entry import Entry, Application, Rating, jsonDecode, loadEntries
-from filter import (extractArchitecture, extractVersionNumber, stripBetweenParens, stripFirstHyphen, stripFirstWords, 
+from filter import (extractArchitecture, extractMultipleVersionNumbers, extractVersionNumber, stripBetweenParens, stripFirstHyphen, stripFirstWords, 
     stripSpacing, stripStringsFromStringIfNeeded, stripStrippableWords)
 from util import firstOrNone, isYear, save, stripMultipleSpaces, stripStringFromString
 
@@ -82,7 +83,7 @@ def buildDirectory(entry):
 
     majorVersion = ''
     if hasattr(entry, 'versionRange'):
-        majorVersion = entry.version
+        majorVersion = entry.version + '/'
     elif hasattr(entry, 'version'):
         majorVersionMatch = MAJOR_VERSION.search(entry.version)
         majorVersion = entry.version + '/'
@@ -168,6 +169,62 @@ def suggestFileName(entry, download):
 
     return fileName.encode('ascii', 'ignore')
 
+def extractDownloadRange(downloads):
+    minVersionNumber = sys.maxint
+    minVersion = None
+    maxVersionNumber = 0
+    maxVersion = None
+
+    for download in downloads:
+        lastMinVersion = minVersion
+        lastMinVersionNumber = minVersionNumber
+        lastMaxVersion = maxVersion
+        lastMaxVersionNumber = maxVersionNumber
+
+        useUnderscores = False
+        lastVersionNumber = 0
+        completed = False
+        while not completed:
+            completed = True
+            multipleVersionNumbers = extractMultipleVersionNumbers(download.name, useUnderscores)
+
+            if multipleVersionNumbers:
+                for versionText in multipleVersionNumbers:
+                    versionNumberOnly = versionText.replace(r'[a-zA-Z]', '')
+
+                    versionNumber = 0
+
+                    try:
+                        versionNumber = float(versionNumberOnly)
+                    except:
+                        continue
+
+                    if not useUnderscores and versionNumber < lastVersionNumber:
+                        print 'Decreasing version numbers in file name. Attempting underscore'
+                        useUnderscores = True
+                        completed = False
+
+                        # Restore previous versions
+                        minVersion = lastMinVersion
+                        minVersionNumber = lastMinVersionNumber
+                        maxVersion = lastMaxVersion
+                        maxVersionNumber = lastMaxVersionNumber
+                        break
+
+                    if versionNumber < minVersionNumber:
+                        minVersionNumber = versionNumber
+                        minVersion = versionText
+                    if versionNumber > maxVersionNumber:
+                        maxVersionNumber = versionNumber
+                        maxVersion = versionText
+
+                    lastVersionNumber = versionNumber
+                
+    if minVersion and maxVersion:
+        return (minVersion, maxVersion)
+
+    return None
+
 def main():
     entries = []
 
@@ -181,7 +238,6 @@ def main():
         newEntry = copy.copy(entry)
 
         title = entry.title
-        # newTitle = title
 
         versionNumberMatch = extractVersionNumber(title, False)
 
@@ -193,9 +249,21 @@ def main():
             newEntry.version = versionNumberMatch[0]
             newEntry.title = versionNumberMatch[1]
 
+        hasDownloads = hasattr(entry, 'downloads')
+
+        if hasDownloads:
+            downloadRange = extractDownloadRange(entry.downloads)
+
+            if downloadRange and not hasattr(newEntry, 'versionRange'):
+                if downloadRange[0] == downloadRange[1]:
+                    newEntry.version = downloadRange[0]
+                else:
+                    newEntry.version = downloadRange[0] + '-' + downloadRange[1]
+                    newEntry.versionRange = True
+
         directory = buildDirectory(newEntry)
 
-        if hasattr(entry, 'downloads'):
+        if hasDownloads:
             downloads = []
             for download in entry.downloads:
                 fileName = suggestFileName(newEntry, download)
@@ -227,9 +295,6 @@ def main():
     orderedgroupedEntries = collections.OrderedDict(sorted(groupedEntries.iteritems()))
     save(orderedgroupedEntries, 'groupedEntries.json')
     save(entryPathToDownloads, 'entryPathToDownloads.json')
-
-    # save(newEntries, '1984-1989modified.json')
-    # save(downloads, '1984-1989downloads.json')
 
 if __name__ == '__main__':
     main()

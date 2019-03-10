@@ -94,7 +94,7 @@ def buildDirectory(entry, includeVersion):
 
     return ('/' + publisher + '/' + productName + '/' + majorVersion).encode('ascii', 'ignore')
 
-def suggestFileName(entry, download):
+def suggestFileName(entry, download, includeExtension=True):
     fileName = ''
     existingFullFileName = download.name
 
@@ -111,22 +111,25 @@ def suggestFileName(entry, download):
 
     splitName = existingFullFileName.split('.')
 
-    if len(splitName) < 2:
-        print 'No file extension'
-        return None
+    extension = ''
 
-    extensions = []
-    # Process extension
-    for extension in splitName[1:]:
-        newExtension = extension.replace('_', '').lower()
+    if includeExtension:
+        if len(splitName) < 2:
+            print 'No file extension'
+            return None
 
-        if newExtension in EXTENSION_MAP:
-            newExtension = EXTENSION_MAP[newExtension]
+        extensions = []
+        # Process extension
+        for extension in splitName[1:]:
+            newExtension = extension.replace('_', '').lower()
 
-        extensions.append(newExtension)
+            if newExtension in EXTENSION_MAP:
+                newExtension = EXTENSION_MAP[newExtension]
 
-    # Wipe underscores from extension
-    extension = '.'.join(extensions)
+            extensions.append(newExtension)
+
+        # Wipe underscores from extension
+        extension = '.' + '.'.join(extensions)
 
     if versionNumber != '':
         versionNumber = ' ' + versionNumber
@@ -139,7 +142,7 @@ def suggestFileName(entry, download):
 
     strippedTitle = newTitle.replace(':', ' - ')
 
-    fileName = stripMultipleSpaces(strippedTitle + versionNumber + '.' + extension)
+    fileName = stripMultipleSpaces(strippedTitle + versionNumber + extension)
 
     if len(fileName) > 31:
         # Attempt to strip publisher/author name
@@ -193,7 +196,7 @@ def extractDownloadRange(downloads):
 
             if multipleVersionNumbers:
                 for versionText in multipleVersionNumbers:
-                    versionNumberOnly = versionText.replace(r'[a-zA-Z]', '')
+                    versionNumberOnly = re.sub(r'[a-zA-Z]', '', versionText)
 
                     versionNumber = 0
 
@@ -229,6 +232,8 @@ def extractDownloadRange(downloads):
     return None
 
 def main():
+    matchOnlyMGPath = ['/apps/aldus-pagemaker-12', '/apps/aldus-pagemaker-2', '/apps/aldus-pagemaker-301']
+
     entries = []
 
     for year in range(1984, 1990):
@@ -239,6 +244,8 @@ def main():
     entryPathToDownloads = {}
 
     for entry in entries:
+        if matchOnlyMGPath and entry.source not in matchOnlyMGPath:
+            continue
         newEntry = copy.copy(entry)
 
         title = entry.title
@@ -284,7 +291,7 @@ def main():
                 downloads = []
                 existingFileNames = set()
                 for download in entry.downloads:
-                    fileName = suggestFileName(entry, download)
+                    fileName = suggestFileName(entry, download, False)
 
                     if fileName in existingFileNames:
                         print 'Filename already exists ' + fileName

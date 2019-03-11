@@ -5,6 +5,19 @@ import sys
 
 from buildDirectories import makeDirectory
 
+def getFileList(path):
+    try:
+        fileListString = subprocess.check_output(['.\Unarchiver\lsar', path], shell=True).decode(sys.stdout.encoding)
+    except:
+        return []
+
+    fileList = fileListString.split(os.linesep)
+
+    # First line is format information
+    fileList = fileList[1:]
+
+    return fileList
+
 def main():
     if len(sys.argv) != 2:
         print 'Invalid arguments. Please specify a file to decompress'
@@ -19,11 +32,7 @@ def main():
     outputFolder = archiveName + '/'
     appledoublePath = outputFolder + '.AppleDouble/'
 
-    fileListString = subprocess.check_output(['.\Unarchiver\lsar', filePath], shell=True).decode(sys.stdout.encoding)
-    fileList = fileListString.split(os.linesep)
-
-    # First line is format information
-    fileList = fileList[1:]
+    fileList = getFileList(filePath)
 
     # Actually decompress
     subprocess.check_call(['.\Unarchiver\unar', filePath])

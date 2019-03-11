@@ -176,17 +176,10 @@ def suggestFileName(entry, download, includeExtension=True):
     return fileName.encode('ascii', 'ignore')
 
 def extractDownloadRange(downloads):
-    minVersionNumber = sys.maxint
-    minVersion = None
-    maxVersionNumber = 0
-    maxVersion = None
+    versionNumberList = []
+    versionList = []
 
-    for download in downloads:
-        lastMinVersion = minVersion
-        lastMinVersionNumber = minVersionNumber
-        lastMaxVersion = maxVersion
-        lastMaxVersionNumber = maxVersionNumber
-
+    for index, download in enumerate(downloads):
         useUnderscores = False
         lastVersionNumber = 0
         completed = False
@@ -205,26 +198,47 @@ def extractDownloadRange(downloads):
                     except:
                         continue
 
+                    if len(versionNumberList) > index:
+                        versionNumberList[index] = versionNumber
+                        versionList[index] = versionText
+                    else:
+                        versionNumberList.append(versionNumber)
+                        versionList.append(versionText)
+
                     if not useUnderscores and versionNumber < lastVersionNumber:
                         # Decreasing version numbers in file name. Attempting underscore
                         useUnderscores = True
                         completed = False
 
-                        # Restore previous versions
-                        minVersion = lastMinVersion
-                        minVersionNumber = lastMinVersionNumber
-                        maxVersion = lastMaxVersion
-                        maxVersionNumber = lastMaxVersionNumber
-                        break
+    if len(versionNumberList) < 1:
+        return None
+    
+    # Determine max and min
+    minVersionNumber = sys.maxint
+    minVersion = None
+    maxVersionNumber = 0
+    maxVersion = None
 
-                    if versionNumber < minVersionNumber:
-                        minVersionNumber = versionNumber
-                        minVersion = versionText
-                    if versionNumber > maxVersionNumber:
-                        maxVersionNumber = versionNumber
-                        maxVersion = versionText
+    currentMinVersionNumber = min(versionNumberList)
+    for index, version in enumerate(versionNumberList):
+        if version - currentMinVersionNumber > 2:
+            print 'Version number ' + str(currentMinVersionNumber) + ' and ' + str(version) + ' for ' + download.name + ' differ by more than 2'
+            while (version > currentMinVersionNumber):
+                version = version / 10
+            
+            versionNumberList[index] = version
+            # Overwrite extracted version name (may be bad)
+            versionList[index] = str(version)
 
-                    lastVersionNumber = versionNumber
+    for index, version in enumerate(versionNumberList):
+        versionText = versionList[index]
+
+        if version < minVersionNumber:
+            minVersionNumber = version
+            minVersion = versionText
+        if version > maxVersionNumber:
+            maxVersionNumber = version
+            maxVersion = versionText
                 
     if minVersion and maxVersion:
         return (minVersion, maxVersion)
@@ -232,7 +246,8 @@ def extractDownloadRange(downloads):
     return None
 
 def main():
-    matchOnlyMGPath = ['/apps/aldus-pagemaker-12', '/apps/aldus-pagemaker-2', '/apps/aldus-pagemaker-301']
+    # matchOnlyMGPath = ['/apps/aldus-pagemaker-12', '/apps/aldus-pagemaker-2', '/apps/aldus-pagemaker-301']
+    matchOnlyMGPath = None
 
     entries = []
 
